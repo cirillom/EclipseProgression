@@ -7,6 +7,7 @@ using System.Security;
 using System.Security.Permissions;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 #pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -20,9 +21,6 @@ public sealed class Plugin : BaseUnityPlugin
     public const string PluginGuid = "com.cirillom.eclipseprogression";
     public const string PluginName = "Eclipse Progression";
     public const string PluginVersion = "1.0.0";
-
-    private TextMeshProUGUI? _summary;
-    private SurvivorDef? _lastSurvivor;
 
     private void Awake()
     {
@@ -41,49 +39,159 @@ public sealed class Plugin : BaseUnityPlugin
 
     private IEnumerator CreateSummary(CharacterSelectController controller)
     {
-        yield return null;
-        yield return null;
-
-        if (!controller || !IsEclipseRun() || controller.readyButton == null)
+        if (!IsEclipseRun())
             yield break;
 
-        var readyPanel = controller.readyButton.transform.parent as RectTransform;
+        RuleCategoryController? difficulty = null;
 
-        if (readyPanel == null)
-            yield break;
-
-        var summaryObject = new GameObject("EclipseProgressionSummary", typeof(RectTransform), typeof(TextMeshProUGUI));
-        summaryObject.layer = readyPanel.gameObject.layer;
-        summaryObject.transform.SetParent(readyPanel.parent, false);
-
-        var rect = summaryObject.GetComponent<RectTransform>();
-        rect.anchorMin = readyPanel.anchorMin;
-        rect.anchorMax = readyPanel.anchorMax;
-        rect.pivot = readyPanel.pivot;
-        rect.anchoredPosition = readyPanel.anchoredPosition + new Vector2(0f, 160f);
-        rect.sizeDelta = new Vector2(620f, 92f);
-
-        _summary = summaryObject.GetComponent<TextMeshProUGUI>();
-        _summary.alignment = TextAlignmentOptions.Center;
-        _summary.color = Color.white;
-        _summary.enableAutoSizing = true;
-        _summary.fontSizeMin = 15f;
-        _summary.fontSizeMax = 24f;
-        _summary.raycastTarget = false;
-
-        _lastSurvivor = controller.currentSurvivorDef;
-        RefreshSummary(_lastSurvivor);
-
-        while (controller && _summary)
+        for (var frame = 0; frame < 120 && controller && difficulty == null; frame++)
         {
-            if (_lastSurvivor != controller.currentSurvivorDef)
-            {
-                _lastSurvivor = controller.currentSurvivorDef;
-                RefreshSummary(_lastSurvivor);
-            }
-
             yield return null;
+
+            var viewer = controller.GetComponentInChildren<RuleBookViewer>(true);
+
+            if (!viewer || !viewer.categoryContainer)
+                continue;
+
+            var categories = viewer.categoryContainer.GetComponentsInChildren<RuleCategoryController>(true);
+            difficulty = categories.FirstOrDefault(category =>
+                category.currentCategory?.displayToken?.IndexOf("DIFFICULTY", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                ?? categories.FirstOrDefault();
         }
+
+        if (!controller || difficulty == null)
+            yield break;
+
+        var card = new GameObject(
+            "EclipseProgressionSummary",
+            typeof(RectTransform),
+            typeof(VerticalLayoutGroup),
+            typeof(LayoutElement));
+        card.layer = difficulty.gameObject.layer;
+        card.transform.SetParent(difficulty.transform.parent, false);
+        card.transform.SetSiblingIndex(difficulty.transform.GetSiblingIndex() + 1);
+
+        card.GetComponent<LayoutElement>().preferredHeight = 126f;
+
+        var layout = card.GetComponent<VerticalLayoutGroup>();
+        layout.spacing = 2f;
+        layout.childControlHeight = true;
+        layout.childControlWidth = true;
+        layout.childForceExpandHeight = false;
+        layout.childForceExpandWidth = true;
+
+        var template = difficulty.categoryHeaderLanguageController.GetComponent<TextMeshProUGUI>();
+        var headerStyle = difficulty.headerColorImages.FirstOrDefault(image => image);
+        var bodyStyle = difficulty.framePanel ? difficulty.framePanel.GetComponent<Image>() : null;
+
+        var header = CreatePanel(card.transform, "Header", 42f, headerStyle, new Color(0.05f, 0.35f, 0.56f, 1f));
+        var headerText = CreateText(header.transform, template, TextAlignmentOptions.Center);
+        headerText.text = "ECLIPSE PROGRESS";
+        headerText.fontStyle = FontStyles.Bold;
+        headerText.fontSize = 20f;
+
+        var body = CreatePanel(card.transform, "Body", 82f, bodyStyle, new Color(0.025f, 0.02f, 0.035f, 0.94f));
+        var stats = CreateText(body.transform, template, TextAlignmentOptions.Center);
+        stats.rectTransform.anchorMin = new Vector2(0.03f, 0.50f);
+        stats.rectTransform.anchorMax = new Vector2(0.97f, 1f);
+        stats.rectTransform.offsetMin = Vector2.zero;
+        stats.rectTransform.offsetMax = Vector2.zero;
+        stats.enableAutoSizing = true;
+        stats.fontSizeMin = 13f;
+        stats.fontSizeMax = 22f;
+
+        var progressBackground = CreateImage(body.transform, "ProgressBackground", new Color(0.08f, 0.10f, 0.13f, 1f));
+        progressBackground.rectTransform.anchorMin = new Vector2(0.08f, 0.40f);
+        progressBackground.rectTransform.anchorMax = new Vector2(0.92f, 0.50f);
+
+        var progressFill = CreateImage(progressBackground.transform, "ProgressFill", new Color(0.20f, 0.70f, 0.95f, 1f));
+        progressFill.type = Image.Type.Filled;
+        progressFill.fillMethod = Image.FillMethod.Horizontal;
+
+        var footer = CreateText(body.transform, template, TextAlignmentOptions.Center);
+        footer.rectTransform.anchorMin = new Vector2(0.03f, 0f);
+        footer.rectTransform.anchorMax = new Vector2(0.97f, 0.38f);
+        footer.rectTransform.offsetMin = Vector2.zero;
+        footer.rectTransform.offsetMax = Vector2.zero;
+        footer.color = new Color(0.72f, 0.78f, 0.84f, 1f);
+        footer.enableAutoSizing = true;
+        footer.fontSizeMin = 10f;
+        footer.fontSizeMax = 14f;
+
+        RefreshSummary(stats, footer, progressFill);
+    }
+
+    private static Image CreatePanel(
+        Transform parent,
+        string name,
+        float height,
+        Image? template,
+        Color fallbackColor)
+    {
+        var panel = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+        panel.layer = parent.gameObject.layer;
+        panel.transform.SetParent(parent, false);
+        panel.GetComponent<LayoutElement>().preferredHeight = height;
+
+        var image = panel.GetComponent<Image>();
+        image.raycastTarget = false;
+
+        if (template != null)
+        {
+            image.sprite = template.sprite;
+            image.type = template.type;
+            image.material = template.material;
+            image.color = template.color;
+        }
+        else
+        {
+            image.color = fallbackColor;
+        }
+
+        return image;
+    }
+
+    private static Image CreateImage(Transform parent, string name, Color color)
+    {
+        var imageObject = new GameObject(name, typeof(RectTransform), typeof(Image));
+        imageObject.layer = parent.gameObject.layer;
+        imageObject.transform.SetParent(parent, false);
+
+        var image = imageObject.GetComponent<Image>();
+        image.color = color;
+        image.raycastTarget = false;
+        image.rectTransform.anchorMin = Vector2.zero;
+        image.rectTransform.anchorMax = Vector2.one;
+        image.rectTransform.offsetMin = Vector2.zero;
+        image.rectTransform.offsetMax = Vector2.zero;
+        return image;
+    }
+
+    private static TextMeshProUGUI CreateText(
+        Transform parent,
+        TextMeshProUGUI? template,
+        TextAlignmentOptions alignment)
+    {
+        var textObject = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+        textObject.layer = parent.gameObject.layer;
+        textObject.transform.SetParent(parent, false);
+
+        var text = textObject.GetComponent<TextMeshProUGUI>();
+        text.rectTransform.anchorMin = Vector2.zero;
+        text.rectTransform.anchorMax = Vector2.one;
+        text.rectTransform.offsetMin = new Vector2(8f, 2f);
+        text.rectTransform.offsetMax = new Vector2(-8f, -2f);
+        text.alignment = alignment;
+        text.color = Color.white;
+        text.raycastTarget = false;
+
+        if (template != null)
+        {
+            text.font = template.font;
+            text.fontSharedMaterial = template.fontSharedMaterial;
+        }
+
+        return text;
     }
 
     private void SurvivorIconControllerRebuild(
@@ -128,24 +236,22 @@ public sealed class Plugin : BaseUnityPlugin
         badge.text = completed == 8 ? "E8 ✓" : $"E{completed}";
     }
 
-    private void RefreshSummary(SurvivorDef? selected)
+    private static void RefreshSummary(
+        TextMeshProUGUI stats,
+        TextMeshProUGUI footer,
+        Image progressFill)
     {
-        var summary = _summary;
-
-        if (summary == null)
-            return;
-
         var survivors = GetEligibleSurvivors();
         var completed = survivors.Sum(GetCompletedLevel);
         var maximum = survivors.Length * 8;
         var e8Count = survivors.Count(survivor => GetCompletedLevel(survivor) == 8);
         var percent = maximum == 0 ? 0f : 100f * completed / maximum;
-        var selectedText = selected == null
-            ? string.Empty
-            : $"\n{Language.GetString(selected.displayNameToken)}: E{GetCompletedLevel(selected)} / E8 complete";
 
-        summary.text =
-            $"<b>ECLIPSE PROGRESS</b>\n{completed} / {maximum} levels completed — {percent:0.0}% · {e8Count} survivors completed E8{selectedText}";
+        stats.text =
+            $"<size=115%><b>{completed}</b></size> <color=#A5B0BA>/ {maximum} LEVELS</color>  " +
+            $"<color=#55C7FF><b>{percent:0.0}%</b></color>";
+        footer.text = $"{e8Count} SURVIVOR{(e8Count == 1 ? string.Empty : "S")} COMPLETED E8";
+        progressFill.fillAmount = percent / 100f;
     }
 
     private static SurvivorDef[] GetEligibleSurvivors()
