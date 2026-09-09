@@ -1,0 +1,10 @@
+{
+  "name": "EclipseProgression",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/cirillom/EclipseProgression",
+  "description": "Client-side Eclipse progress summary and per-survivor progress badges.",
+  "dependencies": [
+    "bbepis-BepInExPack-5.4.2122",
+    "RiskofThunder-HookGenPatcher-1.2.9"
+  ]
+}

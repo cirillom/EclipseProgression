@@ -1,0 +1,16 @@
+# Eclipse Progression
+
+Client-side Risk of Rain 2 Eclipse progress visualizer.
+
+## Features
+
+- Shows completed Eclipse levels, percentage, and E8 survivor count in the Eclipse lobby
+- Shows each eligible survivor's full `E0`-`E8` progression on their portrait
+- Counts only unlocked survivors whose required DLC is owned and enabled
+- Reads the local RoR2 profile without changing progression or adding networking
+
+Progress is calculated as completed Eclipse levels divided by `8 × eligible survivors`.
+
+## Installation
+
+Import the release ZIP as a local mod using r2modman, or install it from Thunderstore.
