@@ -2,6 +2,8 @@
 
 Client-side Risk of Rain 2 Eclipse progress visualizer.
 
+![Eclipse progression shown in the Eclipse lobby](https://raw.githubusercontent.com/cirillom/EclipseProgression/refs/heads/main/example.jpg)
+
 ## Features
 
 - Shows completed eclipses, percentage, and E8 survivor count in the Eclipse lobby
