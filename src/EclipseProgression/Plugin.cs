@@ -100,13 +100,11 @@ public sealed class Plugin : BaseUnityPlugin
         stats.fontSizeMin = 13f;
         stats.fontSizeMax = 22f;
 
-        var progressBackground = CreateImage(body.transform, "ProgressBackground", new Color(0.08f, 0.10f, 0.13f, 1f));
+        var progressBackground = CreateImage(body.transform, "ProgressBackground", new Color(0.22f, 0.24f, 0.27f, 1f));
         progressBackground.rectTransform.anchorMin = new Vector2(0.08f, 0.40f);
         progressBackground.rectTransform.anchorMax = new Vector2(0.92f, 0.50f);
 
         var progressFill = CreateImage(progressBackground.transform, "ProgressFill", new Color(0.20f, 0.70f, 0.95f, 1f));
-        progressFill.type = Image.Type.Filled;
-        progressFill.fillMethod = Image.FillMethod.Horizontal;
 
         var footer = CreateText(body.transform, template, TextAlignmentOptions.Center);
         footer.rectTransform.anchorMin = new Vector2(0.03f, 0f);
@@ -245,13 +243,15 @@ public sealed class Plugin : BaseUnityPlugin
         var completed = survivors.Sum(GetCompletedLevel);
         var maximum = survivors.Length * 8;
         var e8Count = survivors.Count(survivor => GetCompletedLevel(survivor) == 8);
-        var percent = maximum == 0 ? 0f : 100f * completed / maximum;
+        var progress = maximum == 0 ? 0f : (float)completed / maximum;
+        var percent = 100f * progress;
 
         stats.text =
-            $"<size=115%><b>{completed}</b></size> <color=#A5B0BA>/ {maximum} LEVELS</color>  " +
+            $"<size=115%><b>{completed}</b></size> <color=#A5B0BA>/ {maximum} ECLIPSES</color>  " +
             $"<color=#55C7FF><b>{percent:0.0}%</b></color>";
         footer.text = $"{e8Count} SURVIVOR{(e8Count == 1 ? string.Empty : "S")} COMPLETED E8";
-        progressFill.fillAmount = percent / 100f;
+
+        progressFill.rectTransform.anchorMax = new Vector2(progress, 1f);
     }
 
     private static SurvivorDef[] GetEligibleSurvivors()
