@@ -20,7 +20,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.cirillom.eclipseprogression";
     public const string PluginName = "Eclipse Progression";
-    public const string PluginVersion = "1.0.1";
+    public const string PluginVersion = "1.0.2";
 
     private void Awake()
     {
