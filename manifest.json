@@ -1,6 +1,6 @@
 {
   "name": "EclipseProgression",
-  "version_number": "1.0.2",
+  "version_number": "1.1.0",
   "website_url": "https://github.com/cirillom/EclipseProgression",
   "description": "Client-side Eclipse progress summary and per-survivor progress badges.",
   "dependencies": [
